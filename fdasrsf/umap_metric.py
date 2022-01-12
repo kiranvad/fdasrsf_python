@@ -323,6 +323,40 @@ def efda_distance(q1, q2):
     return dist
 
 @numba.njit()
+def efda_distance_phase(q1, q2):
+    """"
+    calculates the phase distances between two curves, where 
+    q2 is aligned to q1. In other words calculates the elastic distances/
+    This metric is set up for use with UMAP or t-sne from scikit-learn
+
+    :param q1: vector of size N
+    :param q2: vector of size N
+
+    :rtype: scalar
+    :return dist: amplitude distance
+    """
+    tst = np.abs(q1-q2)
+    if tst.sum()<1e-3:
+        dist = 0
+    else:
+        q1 = q1.astype(double)
+        q2 = q2.astype(double)
+        gam = warp(q1, q2)
+        M = q1.shape[0]
+        time = linspace(0,1,q1.shape[0])
+        gam = (gam - gam[0]) / (gam[-1] - gam[0])
+        gam_dev = grad(gam, 1 / double(M - 1))
+        theta = np.trapz(np.sqrt(gam_dev),x=time)
+        if theta > 1:
+            theta = 1
+        elif theta < -1:
+            theta = -1
+        dist = np.arccos(theta)    
+        
+    return dist
+    
+
+@numba.njit()
 def efda_distance_curve(beta1, beta2, closed):
     """"
     calculates the distances between two curves, where 
